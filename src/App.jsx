@@ -1,3 +1,6 @@
+console.log("APP VERSION DEBUG: 2026-03-03-A");
+alert("APP VERSION DEBUG: 2026-03-03-A");
+
 import { useEffect, useState } from "react";
 import { supabase } from "./lib/supabaseClient";
 
@@ -22,9 +25,7 @@ function App() {
 
   // 🔄 Carregar punts
   async function loadData() {
-    const { data, error } = await supabase
-      .from("escossells_map")
-      .select("*");
+    const { data, error } = await supabase.from("escossells_map").select("*");
 
     if (error) {
       console.error("ERROR LOAD:", error);
@@ -44,82 +45,108 @@ function App() {
     const file = event.target.files?.[0];
     if (!file) return;
 
-    console.log("Fitxer seleccionat:", file.name);
+    try {
+      console.log("Fitxer seleccionat:", file.name);
 
-    const fileName = `${Date.now()}_${file.name}`;
+      const fileName = `${Date.now()}_${file.name}`;
 
-    // 1️⃣ Upload imatge
-    const { error: uploadError } = await supabase
-      .storage
-      .from("escossells")
-      .upload(fileName, file);
+      // 1️⃣ Upload imatge
+      const { error: uploadError } = await supabase.storage
+        .from("escossells")
+        .upload(fileName, file);
 
-    if (uploadError) {
-      console.error("ERROR UPLOAD:", uploadError);
-      alert("Error pujant imatge");
-      return;
-    }
+      if (uploadError) {
+        console.error("ERROR UPLOAD:", uploadError);
+        alert("Error pujant imatge: " + (uploadError.message || "desconegut"));
+        return;
+      }
 
-    // 2️⃣ Obtenir URL pública
-    const { data: publicUrlData } = supabase
-      .storage
-      .from("escossells")
-      .getPublicUrl(fileName);
+      // 2️⃣ Obtenir URL pública
+      const { data: publicUrlData } = supabase.storage
+        .from("escossells")
+        .getPublicUrl(fileName);
 
-    const publicUrl = publicUrlData?.publicUrl;
+      const publicUrl = publicUrlData?.publicUrl;
 
-    if (!publicUrl) {
-      alert("No s'ha pogut obtenir URL pública");
-      return;
-    }
+      if (!publicUrl) {
+        alert("No s'ha pogut obtenir URL pública");
+        return;
+      }
 
-    console.log("URL pública:", publicUrl);
+      console.log("URL pública:", publicUrl);
 
-    // 3️⃣ Obtenir GPS
-    navigator.geolocation.getCurrentPosition(
-      async (position) => {
-        const lat = position.coords.latitude;
-        const lng = position.coords.longitude;
-
-        console.log("GPS:", lat, lng);
-
-        // 4️⃣ Cridar RPC
-        const { data, error } = await supabase.rpc(
-          "insert_escossell",
-          {
-            new_lat: lat,
-            new_lng: lng,
-            new_address: "Auto GPS",
-            new_comment: "Foto des del mòbil",
-            new_foto_url: publicUrl,
-          }
-        );
-
-        console.log("RPC RESULT:", data, error);
-
-        if (error) {
-          console.error("ERROR RPC:", error);
-          alert("Error inserint");
+      // 3️⃣ Obtenir GPS (promisificat per poder fer await)
+      const position = await new Promise((resolve, reject) => {
+        if (!navigator.geolocation) {
+          reject(new Error("Geolocation no disponible en aquest navegador"));
           return;
         }
 
-        if (data === "duplicate") {
-          alert("Duplicat!");
-        } else if (data === "inserted") {
-          alert("Inserit!");
-          await loadData();
-        } else {
-          alert("Resposta inesperada del servidor");
-        }
-      },
-      (err) => {
-        console.error("ERROR GPS:", err);
-        alert("Error obtenint GPS");
-      }
-    );
+        navigator.geolocation.getCurrentPosition(
+          (pos) => resolve(pos),
+          (err) => reject(err),
+          {
+            enableHighAccuracy: true,
+            timeout: 15000,
+            maximumAge: 0,
+          }
+        );
+      });
 
-    // reset input per poder tornar a pujar mateixa foto
-    event.target.value = "";
+      const lat = position.coords.latitude;
+      const lng = position.coords.longitude;
+
+      console.log("GPS:", lat, lng);
+
+      // 4️⃣ Cridar RPC
+      const { data, error } = await supabase.rpc("insert_escossell", {
+        new_lat: lat,
+        new_lng: lng,
+        new_address: "Auto GPS",
+        new_comment: "Foto des del mòbil",
+        new_foto_url: publicUrl,
+      });
+
+      // Logs complets (clau per diagnòstic)
+      console.log("RPC data:", data);
+      console.log("RPC error:", error);
+      console.log("RPC error message:", error?.message);
+      console.log("RPC error details:", error?.details);
+      console.log("RPC error hint:", error?.hint);
+      console.log("RPC error code:", error?.code);
+
+      if (error) {
+        alert(
+          "Error inserint: " + (error?.message || JSON.stringify(error) || "desconegut")
+        );
+        return;
+      }
+
+      if (data === "duplicate") {
+        alert("Duplicat!");
+      } else if (data === "inserted") {
+        alert("Inserit!");
+        await loadData();
+      } else {
+        alert("Resposta inesperada del servidor: " + JSON.stringify(data));
+      }
+    } catch (err) {
+      // Catch global: pot ser GPS o qualsevol altra excepció
+      console.error("ERROR GENERAL:", err);
+
+      // Si és error de geolocalització, tindrà code/message
+      if (err && typeof err === "object" && "code" in err) {
+        console.log("GPS code:", err.code);
+        console.log("GPS message:", err.message);
+        console.log("GPS full:", JSON.stringify(err));
+        alert("Error obtenint GPS: " + (err.message || "desconegut"));
+      } else {
+        alert("Error: " + (err?.message || JSON.stringify(err) || "desconegut"));
+      }
+    } finally {
+      // reset input per poder tornar a pujar mateixa foto
+      event.target.value = "";
+    }
   }
 
   return (
@@ -135,10 +162,7 @@ function App() {
         />
 
         {points.map((point) => (
-          <Marker
-            key={point.id}
-            position={[point.latitude, point.longitude]}
-          >
+          <Marker key={point.id} position={[point.latitude, point.longitude]}>
             <Popup>
               <b>{point.address}</b>
               <br />
