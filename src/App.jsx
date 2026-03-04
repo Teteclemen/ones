@@ -33,6 +33,7 @@ function App() {
   const [points, setPoints] = useState([]);
   const [userPos, setUserPos] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [status, setStatus] = useState("");
 
   // 🔄 Carregar punts
   async function loadData() {
@@ -75,6 +76,7 @@ function App() {
     if (!file) return;
    
     setLoading(true);
+    setStatus("Pujant foto...");
 
     try {
       console.log("Fitxer seleccionat:", file.name);
@@ -105,6 +107,7 @@ function App() {
       }
 
       console.log("URL pública:", publicUrl);
+      setStatus("Obtenint ubicació...");
 
       // 3️⃣ Obtenir GPS (await)
       const position = await new Promise((resolve, reject) => {
@@ -140,6 +143,7 @@ function App() {
       } catch {
         console.log("No s'ha pogut obtenir adreça");
       }
+      setStatus("Calculant adreça...");
 
       // 4️⃣ Cridar RPC
       const { data, error } = await supabase.rpc("insert_escossell", {
@@ -166,6 +170,7 @@ function App() {
       } else if (data === "inserted") {
         alert("Inserit!");
         await loadData();
+        setStatus("Inserint punt...");
       } else {
         alert("Resposta inesperada del servidor: " + JSON.stringify(data));
       }
@@ -241,6 +246,25 @@ function App() {
           opacity: loading ? 0.5 : 1
         }}
       />
+
+      {loading && (
+  <div
+    style={{
+      position: "absolute",
+      top: 10,
+      left: "50%",
+      transform: "translateX(-50%)",
+      zIndex: 3000,
+      background: "white",
+      padding: "10px 14px",
+      borderRadius: 10,
+      boxShadow: "0 2px 10px rgba(0,0,0,0.15)",
+      fontSize: 14,
+    }}
+  >
+    {status || "Processant..."}
+  </div>
+)}
     </div>
   );
 }
