@@ -1,9 +1,5 @@
-console.log("APP VERSION DEBUG: 2026-03-03-A");
-alert("APP VERSION DEBUG: 2026-03-03-A");
-
 import { useEffect, useState } from "react";
 import { supabase } from "./lib/supabaseClient";
-
 
 import { MapContainer, TileLayer, Marker, Popup, useMap } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
@@ -21,25 +17,15 @@ L.Icon.Default.mergeOptions({
   shadowUrl: markerShadow,
 });
 
+// Component que recentra el mapa quan tenim posició
 function RecenterMap({ position, zoom = 17 }) {
   const map = useMap();
-  const [userPos, setUserPos] = useState(null);
 
- useEffect(() => {
-  loadData();
+  useEffect(() => {
+    if (!position) return;
+    map.setView(position, zoom);
+  }, [position, zoom, map]);
 
-  if (!navigator.geolocation) return;
-
-  navigator.geolocation.getCurrentPosition(
-    (pos) => {
-      setUserPos([pos.coords.latitude, pos.coords.longitude]);
-    },
-    (err) => {
-      console.log("No puc centrar per GPS:", err?.code, err?.message);
-    },
-    { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
-  );
-}, []);
   return null;
 }
 
@@ -60,8 +46,25 @@ function App() {
     setPoints(data || []);
   }
 
+  // Arrencada: carregar punts + demanar GPS per centrar
   useEffect(() => {
+    // DEBUG (treu-ho quan ja funcioni)
+    console.log("APP VERSION DEBUG: 2026-03-03-A");
+    // alert("APP VERSION DEBUG: 2026-03-03-A");
+
     loadData();
+
+    if (!navigator.geolocation) return;
+
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        setUserPos([pos.coords.latitude, pos.coords.longitude]);
+      },
+      (err) => {
+        console.log("No puc centrar per GPS:", err?.code, err?.message);
+      },
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+    );
   }, []);
 
   // 📸 Foto + GPS + Insert
@@ -99,7 +102,7 @@ function App() {
 
       console.log("URL pública:", publicUrl);
 
-      // 3️⃣ Obtenir GPS (promisificat per poder fer await)
+      // 3️⃣ Obtenir GPS (await)
       const position = await new Promise((resolve, reject) => {
         if (!navigator.geolocation) {
           reject(new Error("Geolocation no disponible en aquest navegador"));
@@ -109,11 +112,7 @@ function App() {
         navigator.geolocation.getCurrentPosition(
           (pos) => resolve(pos),
           (err) => reject(err),
-          {
-            enableHighAccuracy: true,
-            timeout: 15000,
-            maximumAge: 0,
-          }
+          { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
         );
       });
 
@@ -122,19 +121,19 @@ function App() {
 
       console.log("GPS:", lat, lng);
 
-      // obtenir adreça real
-      let address = "Adreça desconeguda";
+      // (Opcional) actualitza userPos també quan fas foto
+      setUserPos([lat, lng]);
 
+      // 3.5️⃣ obtenir adreça real (reverse geocoding)
+      let address = "Adreça desconeguda";
       try {
         const res = await fetch(
           `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json`
         );
-
         const geo = await res.json();
         address = geo.display_name || address;
-
         console.log("ADREÇA:", address);
-      } catch (e) {
+      } catch {
         console.log("No s'ha pogut obtenir adreça");
       }
 
@@ -147,17 +146,13 @@ function App() {
         new_foto_url: publicUrl,
       });
 
-      // Logs complets (clau per diagnòstic)
       console.log("RPC data:", data);
       console.log("RPC error:", error);
-      console.log("RPC error message:", error?.message);
-      console.log("RPC error details:", error?.details);
-      console.log("RPC error hint:", error?.hint);
-      console.log("RPC error code:", error?.code);
 
       if (error) {
         alert(
-          "Error inserint: " + (error?.message || JSON.stringify(error) || "desconegut")
+          "Error inserint: " +
+            (error?.message || JSON.stringify(error) || "desconegut")
         );
         return;
       }
@@ -171,32 +166,28 @@ function App() {
         alert("Resposta inesperada del servidor: " + JSON.stringify(data));
       }
     } catch (err) {
-      // Catch global: pot ser GPS o qualsevol altra excepció
       console.error("ERROR GENERAL:", err);
 
       // Si és error de geolocalització, tindrà code/message
       if (err && typeof err === "object" && "code" in err) {
-        console.log("GPS code:", err.code);
-        console.log("GPS message:", err.message);
-        console.log("GPS full:", JSON.stringify(err));
         alert("Error obtenint GPS: " + (err.message || "desconegut"));
       } else {
         alert("Error: " + (err?.message || JSON.stringify(err) || "desconegut"));
       }
     } finally {
-      // reset input per poder tornar a pujar mateixa foto
       event.target.value = "";
     }
   }
 
   return (
     <div style={{ height: "100vh", width: "100vw" }}>
-     <MapContainer
-  center={userPos || [41.3851, 2.1734]}
-  zoom={13}
-  style={{ height: "100%", width: "100%" }}
->
-  <RecenterMap position={userPos} zoom={17} />
+      <MapContainer
+        center={userPos || [41.3851, 2.1734]}
+        zoom={13}
+        style={{ height: "100%", width: "100%" }}
+      >
+        <RecenterMap position={userPos} zoom={17} />
+
         <TileLayer
           attribution="&copy; OpenStreetMap contributors"
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
@@ -204,30 +195,30 @@ function App() {
 
         {points.map((point) => (
           <Marker key={point.id} position={[point.latitude, point.longitude]}>
-          <Popup>
-            <b>{point.address}</b>
-            <br />
-            {point.comentari}
-            <br />
-
-            {point.foto_url && (
-              <img
-                src={point.foto_url}
-                alt="foto"
-                style={{
-                  width: "200px",
-                  marginTop: "8px",
-                  borderRadius: "6px"
-                }}
-              />
-            )}
-
-            <br />
-            <small>{new Date(point.created_at).toLocaleString()}</small>
-          </Popup>
+            <Popup>
+              <b>{point.address}</b>
+              <br />
+              {point.comentari}
+              <br />
+              {point.foto_url && (
+                <img
+                  src={point.foto_url}
+                  alt="foto"
+                  style={{
+                    width: "200px",
+                    marginTop: "8px",
+                    borderRadius: "6px",
+                  }}
+                />
+              )}
+              <br />
+              {point.created_at && (
+                <small>{new Date(point.created_at).toLocaleString()}</small>
+              )}
+            </Popup>
           </Marker>
         ))}
-     </MapContainer>
+      </MapContainer>
 
       <input
         type="file"
