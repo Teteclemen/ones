@@ -98,11 +98,27 @@ function App() {
 
       console.log("GPS:", lat, lng);
 
+      // obtenir adreça real
+      let address = "Adreça desconeguda";
+
+      try {
+        const res = await fetch(
+          `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json`
+        );
+
+        const geo = await res.json();
+        address = geo.display_name || address;
+
+        console.log("ADREÇA:", address);
+      } catch (e) {
+        console.log("No s'ha pogut obtenir adreça");
+      }
+
       // 4️⃣ Cridar RPC
       const { data, error } = await supabase.rpc("insert_escossell", {
         new_lat: lat,
         new_lng: lng,
-        new_address: "Auto GPS",
+        new_address: address,
         new_comment: "Foto des del mòbil",
         new_foto_url: publicUrl,
       });
