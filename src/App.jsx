@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { supabase } from "./lib/supabaseClient";
 
 import { MapContainer, TileLayer, Marker, Popup, useMap } from "react-leaflet";
@@ -17,55 +17,59 @@ L.Icon.Default.mergeOptions({
   shadowUrl: markerShadow,
 });
 
-// Component que recentra el mapa quan tenim posició
 function RecenterMap({ position, zoom = 17 }) {
   const map = useMap();
-
   useEffect(() => {
     if (!position) return;
     map.setView(position, zoom);
   }, [position, zoom, map]);
-
   return null;
 }
 
 function App() {
   const [points, setPoints] = useState([]);
   const [userPos, setUserPos] = useState(null);
+
   const [loading, setLoading] = useState(false);
   const [status, setStatus] = useState("");
 
-  // 🔄 Carregar punts
+  // Auth UI state
+  const [session, setSession] = useState(null);
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+
+  const isAuthed = !!session?.user;
+
   async function loadData() {
     const { data, error } = await supabase.from("escossells_map").select("*");
-
     if (error) {
       console.error("ERROR LOAD:", error);
       return;
     }
-
-    console.log("PUNTS CARREGATS:", data);
     setPoints(data || []);
   }
 
-  // Arrencada: carregar punts + demanar GPS per centrar
   useEffect(() => {
     loadData();
 
-    if (!navigator.geolocation) return;
+    // Auth: carregar sessió i subscriure canvis
+    supabase.auth.getSession().then(({ data }) => setSession(data.session));
+    const { data: sub } = supabase.auth.onAuthStateChange((_event, newSession) => {
+      setSession(newSession);
+    });
 
-    navigator.geolocation.getCurrentPosition(
-      (pos) => {
-        setUserPos([pos.coords.latitude, pos.coords.longitude]);
-      },
-      (err) => {
-        console.log("No puc centrar per GPS:", err?.code, err?.message);
-      },
-      { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
-    );
+    // GPS per centrar
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (pos) => setUserPos([pos.coords.latitude, pos.coords.longitude]),
+        (err) => console.log("No puc centrar per GPS:", err?.code, err?.message),
+        { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+      );
+    }
+
+    return () => sub.subscription.unsubscribe();
   }, []);
 
-  // Helper: geolocalització amb await
   function getPosition(options) {
     return new Promise((resolve, reject) => {
       if (!navigator.geolocation) {
@@ -76,7 +80,6 @@ function App() {
     });
   }
 
-  // Helper: reverse geocoding (Nominatim)
   async function reverseGeocode(lat, lng) {
     try {
       const res = await fetch(
@@ -89,10 +92,79 @@ function App() {
     }
   }
 
-  // 📸 Foto + GPS + Insert
+  // -------- AUTH ACTIONS --------
+  async function loginWithGoogle() {
+    setStatus("Obrint Google login...");
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: "google",
+      options: {
+        redirectTo: window.location.origin,
+      },
+    });
+    if (error) {
+      setStatus("");
+      alert("Error login Google: " + (error.message || "desconegut"));
+    }
+  }
+
+  async function loginWithEmail() {
+    setLoading(true);
+    setStatus("Iniciant sessió...");
+    try {
+      const { error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+      if (error) {
+        alert("Error login: " + (error.message || "desconegut"));
+        return;
+      }
+    } finally {
+      setLoading(false);
+      setStatus("");
+    }
+  }
+
+  async function signupWithEmail() {
+    setLoading(true);
+    setStatus("Creant compte...");
+    try {
+      const { error } = await supabase.auth.signUp({
+        email,
+        password,
+      });
+      if (error) {
+        alert("Error signup: " + (error.message || "desconegut"));
+        return;
+      }
+      alert("Compte creat. Si tens confirmació d'email activa, revisa el correu.");
+    } finally {
+      setLoading(false);
+      setStatus("");
+    }
+  }
+
+  async function logout() {
+    setLoading(true);
+    setStatus("Tancant sessió...");
+    try {
+      await supabase.auth.signOut();
+    } finally {
+      setLoading(false);
+      setStatus("");
+    }
+  }
+
+  // -------- UPLOAD / INSERT --------
   async function handlePhotoUpload(event) {
     const file = event.target.files?.[0];
     if (!file) return;
+
+    if (!isAuthed) {
+      alert("Has d'iniciar sessió per inserir punts.");
+      event.target.value = "";
+      return;
+    }
 
     setLoading(true);
     setStatus("Pujant foto...");
@@ -100,33 +172,27 @@ function App() {
     try {
       const fileName = `${Date.now()}_${file.name}`;
 
-      // 1️⃣ Upload imatge
       const { error: uploadError } = await supabase.storage
         .from("escossells")
         .upload(fileName, file);
 
       if (uploadError) {
         console.error("ERROR UPLOAD:", uploadError);
-        setStatus("Error pujant foto");
         alert("Error pujant imatge: " + (uploadError.message || "desconegut"));
         return;
       }
 
-      // 2️⃣ Obtenir URL pública
       const { data: publicUrlData } = supabase.storage
         .from("escossells")
         .getPublicUrl(fileName);
 
       const publicUrl = publicUrlData?.publicUrl;
       if (!publicUrl) {
-        setStatus("No s'ha pogut obtenir URL pública");
         alert("No s'ha pogut obtenir URL pública");
         return;
       }
 
       setStatus("Obtenint ubicació...");
-
-      // 3️⃣ GPS
       const position = await getPosition({
         enableHighAccuracy: true,
         timeout: 15000,
@@ -135,14 +201,11 @@ function App() {
 
       const lat = position.coords.latitude;
       const lng = position.coords.longitude;
-
       setUserPos([lat, lng]);
 
-      // 4️⃣ Adreça (status abans, no després)
       setStatus("Calculant adreça...");
       const address = await reverseGeocode(lat, lng);
 
-      // 5️⃣ RPC
       setStatus("Inserint punt...");
       const { data, error } = await supabase.rpc("insert_escossell", {
         new_lat: lat,
@@ -154,46 +217,157 @@ function App() {
 
       if (error) {
         console.error("ERROR RPC:", error);
-        setStatus("Error inserint");
-        alert(
-          "Error inserint: " +
-            (error?.message || JSON.stringify(error) || "desconegut")
-        );
+        alert("Error inserint: " + (error?.message || "desconegut"));
         return;
       }
 
       if (data === "duplicate") {
-        setStatus("Duplicat: ja hi ha un punt a prop.");
         alert("Duplicat!");
         return;
       }
 
       if (data === "inserted") {
-        setStatus("Inserit!");
         alert("Inserit!");
         await loadData();
         return;
       }
 
-      setStatus("Resposta inesperada");
       alert("Resposta inesperada del servidor: " + JSON.stringify(data));
     } catch (err) {
       console.error("ERROR GENERAL:", err);
-
-      if (err && typeof err === "object" && "code" in err) {
-        setStatus("Error obtenint GPS");
-        alert("Error obtenint GPS: " + (err.message || "desconegut"));
-      } else {
-        setStatus("Error");
-        alert("Error: " + (err?.message || JSON.stringify(err) || "desconegut"));
-      }
+      alert("Error: " + (err?.message || JSON.stringify(err) || "desconegut"));
     } finally {
-      // IMPORTANT: reactivar botó i netejar estat sempre
       setLoading(false);
       setStatus("");
       event.target.value = "";
     }
   }
+
+  const authBox = useMemo(() => {
+    return (
+      <div
+        style={{
+          position: "absolute",
+          top: 10,
+          left: 10,
+          zIndex: 4000,
+          background: "white",
+          padding: 12,
+          borderRadius: 10,
+          boxShadow: "0 2px 10px rgba(0,0,0,0.15)",
+          width: 280,
+        }}
+      >
+        {!isAuthed ? (
+          <>
+            <div style={{ fontWeight: 700, marginBottom: 8 }}>Login</div>
+
+            <button
+              onClick={loginWithGoogle}
+              disabled={loading}
+              style={{
+                width: "100%",
+                padding: "10px 12px",
+                borderRadius: 8,
+                border: "1px solid #ddd",
+                background: "white",
+                marginBottom: 10,
+                cursor: loading ? "not-allowed" : "pointer",
+              }}
+            >
+              Continua amb Google
+            </button>
+
+            <div style={{ fontSize: 12, opacity: 0.8, marginBottom: 6 }}>
+              Email + password
+            </div>
+
+            <input
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="email"
+              type="email"
+              style={{
+                width: "100%",
+                padding: 8,
+                borderRadius: 8,
+                border: "1px solid #ddd",
+                marginBottom: 8,
+              }}
+            />
+
+            <input
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              placeholder="password"
+              type="password"
+              style={{
+                width: "100%",
+                padding: 8,
+                borderRadius: 8,
+                border: "1px solid #ddd",
+                marginBottom: 10,
+              }}
+            />
+
+            <div style={{ display: "flex", gap: 8 }}>
+              <button
+                onClick={loginWithEmail}
+                disabled={loading || !email || !password}
+                style={{
+                  flex: 1,
+                  padding: "10px 12px",
+                  borderRadius: 8,
+                  border: "1px solid #ddd",
+                  background: "white",
+                  cursor:
+                    loading || !email || !password ? "not-allowed" : "pointer",
+                }}
+              >
+                Entrar
+              </button>
+              <button
+                onClick={signupWithEmail}
+                disabled={loading || !email || !password}
+                style={{
+                  flex: 1,
+                  padding: "10px 12px",
+                  borderRadius: 8,
+                  border: "1px solid #ddd",
+                  background: "white",
+                  cursor:
+                    loading || !email || !password ? "not-allowed" : "pointer",
+                }}
+              >
+                Registrar
+              </button>
+            </div>
+          </>
+        ) : (
+          <>
+            <div style={{ fontWeight: 700, marginBottom: 6 }}>Sessió</div>
+            <div style={{ fontSize: 12, marginBottom: 10 }}>
+              {session.user.email || session.user.id}
+            </div>
+            <button
+              onClick={logout}
+              disabled={loading}
+              style={{
+                width: "100%",
+                padding: "10px 12px",
+                borderRadius: 8,
+                border: "1px solid #ddd",
+                background: "white",
+                cursor: loading ? "not-allowed" : "pointer",
+              }}
+            >
+              Logout
+            </button>
+          </>
+        )}
+      </div>
+    );
+  }, [isAuthed, loading, email, password, session]);
 
   return (
     <div style={{ height: "100vh", width: "100vw" }}>
@@ -203,7 +377,6 @@ function App() {
         style={{ height: "100%", width: "100%" }}
       >
         <RecenterMap position={userPos} zoom={17} />
-
         <TileLayer
           attribution="&copy; OpenStreetMap contributors"
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
@@ -236,12 +409,14 @@ function App() {
         ))}
       </MapContainer>
 
+      {authBox}
+
       <input
         type="file"
         accept="image/*"
         capture="environment"
         onChange={handlePhotoUpload}
-        disabled={loading}
+        disabled={loading || !isAuthed}
         style={{
           position: "absolute",
           bottom: 20,
@@ -250,7 +425,7 @@ function App() {
           background: "white",
           padding: "12px",
           borderRadius: "8px",
-          opacity: loading ? 0.5 : 1,
+          opacity: loading || !isAuthed ? 0.5 : 1,
         }}
       />
 
