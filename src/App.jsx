@@ -50,10 +50,6 @@ function App() {
 
   // Arrencada: carregar punts + demanar GPS per centrar
   useEffect(() => {
-    // DEBUG (treu-ho quan ja funcioni)
-    console.log("APP VERSION DEBUG: 2026-03-03-A");
-    // alert("APP VERSION DEBUG: 2026-03-03-A");
-
     loadData();
 
     if (!navigator.geolocation) return;
@@ -69,18 +65,39 @@ function App() {
     );
   }, []);
 
+  // Helper: geolocalització amb await
+  function getPosition(options) {
+    return new Promise((resolve, reject) => {
+      if (!navigator.geolocation) {
+        reject(new Error("Geolocation no disponible en aquest navegador"));
+        return;
+      }
+      navigator.geolocation.getCurrentPosition(resolve, reject, options);
+    });
+  }
+
+  // Helper: reverse geocoding (Nominatim)
+  async function reverseGeocode(lat, lng) {
+    try {
+      const res = await fetch(
+        `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json`
+      );
+      const geo = await res.json();
+      return geo.display_name || "Adreça desconeguda";
+    } catch {
+      return "Adreça desconeguda";
+    }
+  }
+
   // 📸 Foto + GPS + Insert
   async function handlePhotoUpload(event) {
     const file = event.target.files?.[0];
-
     if (!file) return;
-   
+
     setLoading(true);
     setStatus("Pujant foto...");
 
     try {
-      console.log("Fitxer seleccionat:", file.name);
-
       const fileName = `${Date.now()}_${file.name}`;
 
       // 1️⃣ Upload imatge
@@ -90,6 +107,7 @@ function App() {
 
       if (uploadError) {
         console.error("ERROR UPLOAD:", uploadError);
+        setStatus("Error pujant foto");
         alert("Error pujant imatge: " + (uploadError.message || "desconegut"));
         return;
       }
@@ -100,52 +118,32 @@ function App() {
         .getPublicUrl(fileName);
 
       const publicUrl = publicUrlData?.publicUrl;
-
       if (!publicUrl) {
+        setStatus("No s'ha pogut obtenir URL pública");
         alert("No s'ha pogut obtenir URL pública");
         return;
       }
 
-      console.log("URL pública:", publicUrl);
       setStatus("Obtenint ubicació...");
 
-      // 3️⃣ Obtenir GPS (await)
-      const position = await new Promise((resolve, reject) => {
-        if (!navigator.geolocation) {
-          reject(new Error("Geolocation no disponible en aquest navegador"));
-          return;
-        }
-
-        navigator.geolocation.getCurrentPosition(
-          (pos) => resolve(pos),
-          (err) => reject(err),
-          { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
-        );
+      // 3️⃣ GPS
+      const position = await getPosition({
+        enableHighAccuracy: true,
+        timeout: 15000,
+        maximumAge: 0,
       });
 
       const lat = position.coords.latitude;
       const lng = position.coords.longitude;
 
-      console.log("GPS:", lat, lng);
-
-      // (Opcional) actualitza userPos també quan fas foto
       setUserPos([lat, lng]);
 
-      // 3.5️⃣ obtenir adreça real (reverse geocoding)
-      let address = "Adreça desconeguda";
-      try {
-        const res = await fetch(
-          `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json`
-        );
-        const geo = await res.json();
-        address = geo.display_name || address;
-        console.log("ADREÇA:", address);
-      } catch {
-        console.log("No s'ha pogut obtenir adreça");
-      }
+      // 4️⃣ Adreça (status abans, no després)
       setStatus("Calculant adreça...");
+      const address = await reverseGeocode(lat, lng);
 
-      // 4️⃣ Cridar RPC
+      // 5️⃣ RPC
+      setStatus("Inserint punt...");
       const { data, error } = await supabase.rpc("insert_escossell", {
         new_lat: lat,
         new_lng: lng,
@@ -154,10 +152,9 @@ function App() {
         new_foto_url: publicUrl,
       });
 
-      console.log("RPC data:", data);
-      console.log("RPC error:", error);
-
       if (error) {
+        console.error("ERROR RPC:", error);
+        setStatus("Error inserint");
         alert(
           "Error inserint: " +
             (error?.message || JSON.stringify(error) || "desconegut")
@@ -166,24 +163,34 @@ function App() {
       }
 
       if (data === "duplicate") {
+        setStatus("Duplicat: ja hi ha un punt a prop.");
         alert("Duplicat!");
-      } else if (data === "inserted") {
+        return;
+      }
+
+      if (data === "inserted") {
+        setStatus("Inserit!");
         alert("Inserit!");
         await loadData();
-        setStatus("Inserint punt...");
-      } else {
-        alert("Resposta inesperada del servidor: " + JSON.stringify(data));
+        return;
       }
+
+      setStatus("Resposta inesperada");
+      alert("Resposta inesperada del servidor: " + JSON.stringify(data));
     } catch (err) {
       console.error("ERROR GENERAL:", err);
 
-      // Si és error de geolocalització, tindrà code/message
       if (err && typeof err === "object" && "code" in err) {
+        setStatus("Error obtenint GPS");
         alert("Error obtenint GPS: " + (err.message || "desconegut"));
       } else {
+        setStatus("Error");
         alert("Error: " + (err?.message || JSON.stringify(err) || "desconegut"));
       }
     } finally {
+      // IMPORTANT: reactivar botó i netejar estat sempre
+      setLoading(false);
+      setStatus("");
       event.target.value = "";
     }
   }
@@ -243,28 +250,28 @@ function App() {
           background: "white",
           padding: "12px",
           borderRadius: "8px",
-          opacity: loading ? 0.5 : 1
+          opacity: loading ? 0.5 : 1,
         }}
       />
 
       {loading && (
-  <div
-    style={{
-      position: "absolute",
-      top: 10,
-      left: "50%",
-      transform: "translateX(-50%)",
-      zIndex: 3000,
-      background: "white",
-      padding: "10px 14px",
-      borderRadius: 10,
-      boxShadow: "0 2px 10px rgba(0,0,0,0.15)",
-      fontSize: 14,
-    }}
-  >
-    {status || "Processant..."}
-  </div>
-)}
+        <div
+          style={{
+            position: "absolute",
+            top: 10,
+            left: "50%",
+            transform: "translateX(-50%)",
+            zIndex: 3000,
+            background: "white",
+            padding: "10px 14px",
+            borderRadius: 10,
+            boxShadow: "0 2px 10px rgba(0,0,0,0.15)",
+            fontSize: 14,
+          }}
+        >
+          {status || "Processant..."}
+        </div>
+      )}
     </div>
   );
 }
