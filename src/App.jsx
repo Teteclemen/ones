@@ -32,6 +32,7 @@ function RecenterMap({ position, zoom = 17 }) {
 function App() {
   const [points, setPoints] = useState([]);
   const [userPos, setUserPos] = useState(null);
+  const [loading, setLoading] = useState(false);
 
   // 🔄 Carregar punts
   async function loadData() {
@@ -70,7 +71,10 @@ function App() {
   // 📸 Foto + GPS + Insert
   async function handlePhotoUpload(event) {
     const file = event.target.files?.[0];
+
     if (!file) return;
+   
+    setLoading(true);
 
     try {
       console.log("Fitxer seleccionat:", file.name);
@@ -225,6 +229,7 @@ function App() {
         accept="image/*"
         capture="environment"
         onChange={handlePhotoUpload}
+        disabled={loading}
         style={{
           position: "absolute",
           bottom: 20,
@@ -233,6 +238,7 @@ function App() {
           background: "white",
           padding: "12px",
           borderRadius: "8px",
+          opacity: loading ? 0.5 : 1
         }}
       />
     </div>
