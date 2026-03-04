@@ -4,7 +4,8 @@ alert("APP VERSION DEBUG: 2026-03-03-A");
 import { useEffect, useState } from "react";
 import { supabase } from "./lib/supabaseClient";
 
-import { MapContainer, TileLayer, Marker, Popup } from "react-leaflet";
+
+import { MapContainer, TileLayer, Marker, Popup, useMap } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
 
 import L from "leaflet";
@@ -19,6 +20,28 @@ L.Icon.Default.mergeOptions({
   iconUrl: markerIcon,
   shadowUrl: markerShadow,
 });
+
+function RecenterMap({ position, zoom = 17 }) {
+  const map = useMap();
+  const [userPos, setUserPos] = useState(null);
+
+ useEffect(() => {
+  loadData();
+
+  if (!navigator.geolocation) return;
+
+  navigator.geolocation.getCurrentPosition(
+    (pos) => {
+      setUserPos([pos.coords.latitude, pos.coords.longitude]);
+    },
+    (err) => {
+      console.log("No puc centrar per GPS:", err?.code, err?.message);
+    },
+    { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+  );
+}, []);
+  return null;
+}
 
 function App() {
   const [points, setPoints] = useState([]);
@@ -167,11 +190,12 @@ function App() {
 
   return (
     <div style={{ height: "100vh", width: "100vw" }}>
-      <MapContainer
-        center={[41.3851, 2.1734]}
-        zoom={13}
-        style={{ height: "100%", width: "100%" }}
-      >
+     <MapContainer
+  center={userPos || [41.3851, 2.1734]}
+  zoom={13}
+  style={{ height: "100%", width: "100%" }}
+>
+  <RecenterMap position={userPos} zoom={17} />
         <TileLayer
           attribution="&copy; OpenStreetMap contributors"
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
@@ -179,22 +203,30 @@ function App() {
 
         {points.map((point) => (
           <Marker key={point.id} position={[point.latitude, point.longitude]}>
-            <Popup>
-              <b>{point.address}</b>
-              <br />
-              {point.comentari}
-              <br />
-              {point.foto_url && (
-                <img
-                  src={point.foto_url}
-                  alt="foto"
-                  style={{ width: "150px", marginTop: "8px" }}
-                />
-              )}
-            </Popup>
+          <Popup>
+            <b>{point.address}</b>
+            <br />
+            {point.comentari}
+            <br />
+
+            {point.foto_url && (
+              <img
+                src={point.foto_url}
+                alt="foto"
+                style={{
+                  width: "200px",
+                  marginTop: "8px",
+                  borderRadius: "6px"
+                }}
+              />
+            )}
+
+            <br />
+            <small>{new Date(point.created_at).toLocaleString()}</small>
+          </Popup>
           </Marker>
         ))}
-      </MapContainer>
+     </MapContainer>
 
       <input
         type="file"
