@@ -45,6 +45,7 @@ function RecenterMap({ position, zoom = 17 }) {
 
 function App() {
   const [points, setPoints] = useState([]);
+  const [userPos, setUserPos] = useState(null);
 
   // 🔄 Carregar punts
   async function loadData() {
