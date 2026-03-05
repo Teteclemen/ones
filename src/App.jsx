@@ -205,6 +205,7 @@ function App() {
             new_address: address,
             new_comment: "Foto des del mòbil",
             new_foto_url: publicUrl,
+            new_kind: "buit",
           });
 
           if (rpcError) {
