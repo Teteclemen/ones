@@ -199,13 +199,18 @@ function App() {
 
       setStatus("Inserint punt...");
 
-      const { data: result } = await supabase.rpc("insert_escossell", {
-        new_lat: lat,
-        new_lng: lng,
-        new_address: address,
-        new_comment: "Foto des del mòbil",
-        new_foto_url: publicUrl,
-      });
+     const { data: result, error: rpcError } = await supabase.rpc("insert_escossell", {
+            new_lat: lat,
+            new_lng: lng,
+            new_address: address,
+            new_comment: "Foto des del mòbil",
+            new_foto_url: publicUrl,
+          });
+
+          if (rpcError) {
+            alert("Error RPC: " + (rpcError.message || JSON.stringify(rpcError)));
+            return;
+          }
 
       if (result === "not_logged") {
         alert("Has d'iniciar sessió per inserir fotos.");
