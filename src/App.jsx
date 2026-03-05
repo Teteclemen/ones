@@ -16,6 +16,50 @@ L.Icon.Default.mergeOptions({
   iconUrl: markerIcon,
   shadowUrl: markerShadow,
 });
+const iconArbre = L.divIcon({
+  className: "",
+  html: `<div style="
+    width:28px;height:28px;border-radius:14px;
+    display:flex;align-items:center;justify-content:center;
+    background:#e6f6e6;border:2px solid #2e7d32;
+    font-size:16px;
+  ">🌳</div>`,
+  iconSize: [28, 28],
+  iconAnchor: [14, 28],
+  popupAnchor: [0, -28],
+});
+
+const iconFalta = L.divIcon({
+  className: "",
+  html: `<div style="
+    width:28px;height:28px;border-radius:14px;
+    display:flex;align-items:center;justify-content:center;
+    background:#fff3e0;border:2px solid #ef6c00;
+    font-size:16px;
+  ">🚧</div>`,
+  iconSize: [28, 28],
+  iconAnchor: [14, 28],
+  popupAnchor: [0, -28],
+});
+
+const iconBuit = L.divIcon({
+  className: "",
+  html: `<div style="
+    width:28px;height:28px;border-radius:14px;
+    display:flex;align-items:center;justify-content:center;
+    background:#f2f2f2;border:2px solid #616161;
+    font-size:16px;
+  ">⬜</div>`,
+  iconSize: [28, 28],
+  iconAnchor: [14, 28],
+  popupAnchor: [0, -28],
+});
+
+function getPointIcon(point) {
+  if (point.status === "arbre") return iconArbre;
+  if (point.kind === "falta") return iconFalta;
+  return iconBuit; // buit + pendent
+}
 
 function RecenterMap({ position, zoom = 17 }) {
   const map = useMap();
@@ -425,7 +469,11 @@ function App() {
         <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
 
         {points.map((point) => (
-          <Marker key={point.id} position={[point.latitude, point.longitude]}>
+            <Marker
+              key={point.id}
+              position={[point.latitude, point.longitude]}
+              icon={getPointIcon(point)}
+            >
             <Popup>
               <b>{point.address}</b>
               <br />
