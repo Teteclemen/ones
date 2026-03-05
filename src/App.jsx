@@ -38,6 +38,7 @@ function App() {
   const [session, setSession] = useState(null);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [kind, setKind] = useState("buit");
 
   const isAuthed = !!session?.user;
 
@@ -205,7 +206,7 @@ function App() {
             new_address: address,
             new_comment: "Foto des del mòbil",
             new_foto_url: publicUrl,
-            new_kind: "buit",
+            new_kind: kind,
           });
 
           if (rpcError) {
@@ -324,6 +325,49 @@ function App() {
       </div>
     );
   }, [isAuthed, email, password, session]);
+
+  <div
+  style={{
+    position: "absolute",
+    top: 10,
+    right: 10,
+    zIndex: 4000,
+    background: "white",
+    padding: 10,
+    borderRadius: 10,
+    boxShadow: "0 2px 10px rgba(0,0,0,0.15)",
+    display: "flex",
+    gap: 8,
+  }}
+>
+  <button
+    type="button"
+    onClick={() => setKind("buit")}
+    style={{
+      padding: "8px 10px",
+      borderRadius: 8,
+      border: "1px solid #ddd",
+      background: kind === "buit" ? "#eee" : "white",
+      cursor: "pointer",
+    }}
+  >
+    ⬜ Buit
+  </button>
+
+  <button
+    type="button"
+    onClick={() => setKind("falta")}
+    style={{
+      padding: "8px 10px",
+      borderRadius: 8,
+      border: "1px solid #ddd",
+      background: kind === "falta" ? "#eee" : "white",
+      cursor: "pointer",
+    }}
+  >
+    🚧 Falta
+  </button>
+</div>
 
   return (
     <div style={{ height: "100vh", width: "100vw" }}>
