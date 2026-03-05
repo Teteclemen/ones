@@ -240,6 +240,50 @@ function App() {
     }
   }
 
+  async function markTree(point) {
+  if (!isAuthed) {
+    alert("Has d'iniciar sessió per marcar un arbre.");
+    return;
+  }
+
+  setLoading(true);
+  setStatus("Marcant arbre...");
+
+  try {
+    const { data: result, error } = await supabase.rpc("mark_tree_planted_nearby", {
+      new_lat: point.latitude,
+      new_lng: point.longitude,
+      new_foto_url: null,
+    });
+
+    if (error) {
+      alert("Error RPC: " + error.message);
+      return;
+    }
+
+    if (result === "tree_marked") {
+      alert("Arbre marcat!");
+      await loadData();
+      return;
+    }
+
+    if (result === "no_nearby_point") {
+      alert("No he trobat cap punt a prop.");
+      return;
+    }
+
+    if (result === "not_logged") {
+      alert("Has d'iniciar sessió.");
+      return;
+    }
+
+    alert("Resposta inesperada: " + JSON.stringify(result));
+  } finally {
+    setLoading(false);
+    setStatus("");
+  }
+}
+
   const authBox = useMemo(() => {
     return (
       <div
@@ -387,12 +431,47 @@ function App() {
               <br />
               {point.comentari}
               <br />
+
               {point.foto_url && (
                 <img
                   src={point.foto_url}
                   alt="foto"
                   style={{ width: 200, marginTop: 8, borderRadius: 8 }}
                 />
+              )}
+
+              <br />
+
+              {point.status === "arbre" ? (
+                <div
+                  style={{
+                    marginTop: 10,
+                    padding: "8px 10px",
+                    background: "#e6f6e6",
+                    borderRadius: 8,
+                    fontSize: 14,
+                  }}
+                >
+                  🌳 Ja hi ha arbre
+                </div>
+              ) : (
+                isAuthed && (
+                  <button
+                    type="button"
+                    onClick={() => markTree(point)}
+                    style={{
+                      marginTop: 10,
+                      width: "100%",
+                      padding: "10px 12px",
+                      borderRadius: 10,
+                      border: "1px solid #ddd",
+                      background: "white",
+                      cursor: "pointer",
+                    }}
+                  >
+                    🌳 Marcar arbre plantat
+                  </button>
+                )
               )}
             </Popup>
           </Marker>
