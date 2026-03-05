@@ -166,11 +166,12 @@ function App() {
     if (!file) return;
 
     if (!isAuthed) {
-      alert("Has d'iniciar sessió.");
+      alert("Has d'iniciar sessió per inserir fotos.");
       event.target.value = "";
       return;
     }
 
+ 
     setLoading(true);
     setStatus("Pujant foto...");
 
@@ -275,7 +276,15 @@ function App() {
                 placeholder="email"
                 type="email"
                 autoComplete="email"
-                style={{ width: "100%", padding: 8, marginBottom: 8 }}
+                style={{
+                      width: "100%",
+                      boxSizing: "border-box",
+                      padding: 8,
+                      borderRadius: 8,
+                      border: "1px solid #ddd",
+                      marginBottom: 8,
+                    }}
+               
               />
 
               <input
@@ -284,7 +293,14 @@ function App() {
                 placeholder="password"
                 type="password"
                 autoComplete="current-password"
-                style={{ width: "100%", padding: 8, marginBottom: 10 }}
+                style={{
+                      width: "100%",
+                      boxSizing: "border-box",
+                      padding: 8,
+                      borderRadius: 8,
+                      border: "1px solid #ddd",
+                      marginBottom: 10,
+                    }}
               />
 
               <div style={{ display: "flex", gap: 8 }}>
@@ -338,7 +354,7 @@ function App() {
         accept="image/*"
         capture="environment"
         onChange={handlePhotoUpload}
-        disabled={loading || !isAuthed}
+        disabled={loading}
         style={{
           position: "absolute",
           bottom: 20,
