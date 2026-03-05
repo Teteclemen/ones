@@ -162,14 +162,17 @@ function App() {
   }
 
   async function handlePhotoUpload(event) {
-    const file = event.target.files?.[0];
-    if (!file) return;
 
     if (!isAuthed) {
       alert("Has d'iniciar sessió per inserir fotos.");
       event.target.value = "";
       return;
     }
+
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    
 
  
     setLoading(true);
