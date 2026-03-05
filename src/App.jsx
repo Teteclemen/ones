@@ -118,9 +118,7 @@ function App() {
         password,
       });
 
-      if (error) {
-        alert("Error login: " + error.message);
-      }
+      if (error) alert("Error login: " + error.message);
     } finally {
       setLoading(false);
       setStatus("");
@@ -162,19 +160,9 @@ function App() {
   }
 
   async function handlePhotoUpload(event) {
-
-    if (!isAuthed) {
-      alert("Has d'iniciar sessió per inserir fotos.");
-      event.target.value = "";
-      return;
-    }
-
     const file = event.target.files?.[0];
     if (!file) return;
 
-    
-
- 
     setLoading(true);
     setStatus("Pujant foto...");
 
@@ -219,6 +207,11 @@ function App() {
         new_foto_url: publicUrl,
       });
 
+      if (result === "not_logged") {
+        alert("Has d'iniciar sessió per inserir fotos.");
+        return;
+      }
+
       if (result === "duplicate") {
         alert("Duplicat!");
         return;
@@ -227,7 +220,10 @@ function App() {
       if (result === "inserted") {
         alert("Inserit!");
         await loadData();
+        return;
       }
+
+      alert("Resposta inesperada: " + JSON.stringify(result));
     } catch (err) {
       alert(err.message);
     } finally {
@@ -280,14 +276,13 @@ function App() {
                 type="email"
                 autoComplete="email"
                 style={{
-                      width: "100%",
-                      boxSizing: "border-box",
-                      padding: 8,
-                      borderRadius: 8,
-                      border: "1px solid #ddd",
-                      marginBottom: 8,
-                    }}
-               
+                  width: "100%",
+                  boxSizing: "border-box",
+                  padding: 8,
+                  borderRadius: 8,
+                  border: "1px solid #ddd",
+                  marginBottom: 8,
+                }}
               />
 
               <input
@@ -297,13 +292,13 @@ function App() {
                 type="password"
                 autoComplete="current-password"
                 style={{
-                      width: "100%",
-                      boxSizing: "border-box",
-                      padding: 8,
-                      borderRadius: 8,
-                      border: "1px solid #ddd",
-                      marginBottom: 10,
-                    }}
+                  width: "100%",
+                  boxSizing: "border-box",
+                  padding: 8,
+                  borderRadius: 8,
+                  border: "1px solid #ddd",
+                  marginBottom: 10,
+                }}
               />
 
               <div style={{ display: "flex", gap: 8 }}>
@@ -316,7 +311,7 @@ function App() {
           </>
         ) : (
           <>
-            <div>Sessió: {session.user.email}</div>
+            <div style={{ marginBottom: 8 }}>Sessió: {session.user.email}</div>
             <button onClick={logout}>Logout</button>
           </>
         )}
@@ -343,7 +338,11 @@ function App() {
               {point.comentari}
               <br />
               {point.foto_url && (
-                <img src={point.foto_url} alt="foto" style={{ width: 200 }} />
+                <img
+                  src={point.foto_url}
+                  alt="foto"
+                  style={{ width: 200, marginTop: 8, borderRadius: 8 }}
+                />
               )}
             </Popup>
           </Marker>
@@ -352,22 +351,52 @@ function App() {
 
       {authBox}
 
-      <input
-        type="file"
-        accept="image/*"
-        capture="environment"
-        onChange={handlePhotoUpload}
-        disabled={loading}
+      {/* Botó d'afegir: si NO hi ha login, no obre càmera, mostra missatge */}
+      <div
         style={{
           position: "absolute",
           bottom: 20,
           left: 20,
           zIndex: 1000,
-          background: "white",
-          padding: "12px",
-          borderRadius: "8px",
         }}
-      />
+      >
+        {isAuthed ? (
+          <input
+            type="file"
+            accept="image/*"
+            capture="environment"
+            onChange={handlePhotoUpload}
+            disabled={loading}
+            style={{
+              background: "white",
+              padding: "12px 16px",
+              borderRadius: "10px",
+              border: "1px solid #ddd",
+              cursor: loading ? "not-allowed" : "pointer",
+              opacity: loading ? 0.6 : 1,
+            }}
+          />
+        ) : (
+          <button
+            type="button"
+            onClick={() => alert("Has d'iniciar sessió per afegir un escossell.")}
+            style={{
+              background: "white",
+              border: "1px solid #ddd",
+              padding: "12px 16px",
+              borderRadius: "10px",
+              fontSize: "14px",
+              cursor: "pointer",
+              display: "flex",
+              alignItems: "center",
+              gap: "8px",
+              boxShadow: "0 2px 6px rgba(0,0,0,0.15)",
+            }}
+          >
+            📷 Afegir escossell
+          </button>
+        )}
+      </div>
 
       {loading && (
         <div
@@ -376,11 +405,15 @@ function App() {
             top: 10,
             left: "50%",
             transform: "translateX(-50%)",
+            zIndex: 3000,
             background: "white",
-            padding: "10px",
+            padding: "10px 14px",
+            borderRadius: 10,
+            boxShadow: "0 2px 10px rgba(0,0,0,0.15)",
+            fontSize: 14,
           }}
         >
-          {status}
+          {status || "Processant..."}
         </div>
       )}
     </div>
