@@ -133,9 +133,25 @@ function App() {
         `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json`
       );
       const geo = await res.json();
-      return geo.display_name || "Adreça desconeguda";
+
+      const addressParts = geo.address || {};
+
+      return {
+        address: geo.display_name || "Adreça desconeguda",
+        city:
+          addressParts.city ||
+          addressParts.town ||
+          addressParts.village ||
+          addressParts.municipality ||
+          null,
+        country: addressParts.country || null,
+      };
     } catch {
-      return "Adreça desconeguda";
+      return {
+        address: "Adreça desconeguda",
+        city: null,
+        country: null,
+      };
     }
   }
 
@@ -527,6 +543,24 @@ function App() {
       </MapContainer>
 
       {authBox}
+      <div
+          style={{
+            position: "absolute",
+            bottom: 20,
+            right: 20,
+            zIndex: 4000,
+            background: "white",
+            padding: 10,
+            borderRadius: 10,
+            boxShadow: "0 2px 10px rgba(0,0,0,0.15)",
+            fontSize: 13,
+            lineHeight: 1.5,
+          }}
+        >
+          <div>🌳 Arbre</div>
+          <div>⬜ Escossell buit</div>
+          <div>🚧 Falta escossell</div>
+      </div>
 
       {/* Botó d'afegir: si NO hi ha login, no obre càmera, mostra missatge */}
       <div
