@@ -84,10 +84,20 @@ function App() {
   const [password, setPassword] = useState("");
   const [kind, setKind] = useState("buit");
 
+  const [cityFilter, setCityFilter] = useState(null);
+
   const isAuthed = !!session?.user;
 
   async function loadData() {
-    const { data, error } = await supabase.from("escossells_map").select("*");
+    let query = supabase.from("escossells_map").select("*");
+
+    if (cityFilter) {
+      query = query.eq("city", cityFilter);
+    }
+
+    const { data, error } = await query;
+
+   
 
     if (error) {
       console.error("ERROR LOAD:", error);
@@ -473,6 +483,21 @@ function App() {
   >
     🚧 Falta
   </button>
+
+  <select
+  value={cityFilter || ""}
+  onChange={(e) => setCityFilter(e.target.value || null)}
+  style={{
+    position: "absolute",
+    top: 70,
+    left: 10,
+    zIndex: 4000,
+    padding: 6
+  }}
+>
+  <option value="">Totes les ciutats</option>
+  <option value="Barcelona">Barcelona</option>
+</select>
 </div>
 
   return (
