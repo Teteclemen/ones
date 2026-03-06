@@ -256,14 +256,16 @@ function App() {
 
       setStatus("Calculant adreça...");
 
-      const address = await reverseGeocode(lat, lng);
+      const geoData = await reverseGeocode(lat, lng);
 
       setStatus("Inserint punt...");
 
      const { data: result, error: rpcError } = await supabase.rpc("insert_escossell", {
             new_lat: lat,
             new_lng: lng,
-            new_address: address,
+            new_address: geoData.address,
+            new_city: geoData.city,
+            new_country: geoData.country,
             new_comment: "Foto des del mòbil",
             new_foto_url: publicUrl,
             new_kind: kind,
