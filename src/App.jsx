@@ -612,19 +612,19 @@ function App() {
         <div style={{ fontWeight: 700, marginTop: 6 }}>Filtre ciutat</div>
 
         <select
-          value={cityFilter}
-          onChange={(e) => setCityFilter(e.target.value)}
+          value={cityFilter || ""}
+          onChange={(e) => setCityFilter(e.target.value || null)}
           style={{
-            padding: 8,
-            borderRadius: 8,
-            border: "1px solid #ddd",
+            position: "absolute",
+            top: 70,
+            left: 10,
+            zIndex: 4000,
+            padding: 6
           }}
         >
           <option value="">Totes les ciutats</option>
-          {currentCity && !cityOptions.includes(currentCity) && (
-            <option value={currentCity}>{currentCity}</option>
-          )}
-          {cityOptions.map((city) => (
+
+          {[...new Set(points.map(p => p.city).filter(Boolean))].map(city => (
             <option key={city} value={city}>
               {city}
             </option>
