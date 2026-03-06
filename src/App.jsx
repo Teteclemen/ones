@@ -16,6 +16,7 @@ L.Icon.Default.mergeOptions({
   iconUrl: markerIcon,
   shadowUrl: markerShadow,
 });
+
 const iconArbre = L.divIcon({
   className: "",
   html: `<div style="
@@ -58,7 +59,7 @@ const iconBuit = L.divIcon({
 function getPointIcon(point) {
   if (point.status === "arbre") return iconArbre;
   if (point.kind === "falta") return iconFalta;
-  return iconBuit; // buit + pendent
+  return iconBuit;
 }
 
 function RecenterMap({ position, zoom = 17 }) {
@@ -82,22 +83,26 @@ function App() {
   const [session, setSession] = useState(null);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [kind, setKind] = useState("buit");
 
-  const [cityFilter, setCityFilter] = useState(null);
+  const [kindToUpload, setKindToUpload] = useState("buit");
+  const [cityFilter, setCityFilter] = useState("");
+  const [currentCity, setCurrentCity] = useState("");
 
   const isAuthed = !!session?.user;
 
-  async function loadData() {
+  const cityOptions = useMemo(() => {
+    const unique = [...new Set(points.map((p) => p.city).filter(Boolean))];
+    return unique.sort((a, b) => a.localeCompare(b));
+  }, [points]);
+
+  async function loadData(selectedCity = cityFilter) {
     let query = supabase.from("escossells_map").select("*");
 
-    if (cityFilter) {
-      query = query.eq("city", cityFilter);
+    if (selectedCity) {
+      query = query.eq("city", selectedCity);
     }
 
     const { data, error } = await query;
-
-   
 
     if (error) {
       console.error("ERROR LOAD:", error);
@@ -108,8 +113,6 @@ function App() {
   }
 
   useEffect(() => {
-    loadData();
-
     supabase.auth.getSession().then(({ data }) => setSession(data.session));
 
     const { data: sub } = supabase.auth.onAuthStateChange((_event, newSession) => {
@@ -118,7 +121,19 @@ function App() {
 
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
-        (pos) => setUserPos([pos.coords.latitude, pos.coords.longitude]),
+        async (pos) => {
+          const lat = pos.coords.latitude;
+          const lng = pos.coords.longitude;
+
+          setUserPos([lat, lng]);
+
+          const geo = await reverseGeocode(lat, lng);
+          if (geo.city) {
+            setCurrentCity(geo.city);
+            // només ho posem per defecte si encara no hi ha filtre triat
+            setCityFilter((prev) => prev || geo.city);
+          }
+        },
         (err) => console.log("No puc centrar per GPS:", err?.code, err?.message),
         { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
       );
@@ -126,6 +141,10 @@ function App() {
 
     return () => sub.subscription.unsubscribe();
   }, []);
+
+  useEffect(() => {
+    loadData(cityFilter);
+  }, [cityFilter]);
 
   function getPosition(options) {
     return new Promise((resolve, reject) => {
@@ -162,6 +181,34 @@ function App() {
         city: null,
         country: null,
       };
+    }
+  }
+
+  async function centerOnUser() {
+    try {
+      setLoading(true);
+      setStatus("Centrant ubicació...");
+
+      const position = await getPosition({
+        enableHighAccuracy: true,
+        timeout: 15000,
+        maximumAge: 0,
+      });
+
+      const lat = position.coords.latitude;
+      const lng = position.coords.longitude;
+
+      setUserPos([lat, lng]);
+
+      const geo = await reverseGeocode(lat, lng);
+      if (geo.city) {
+        setCurrentCity(geo.city);
+      }
+    } catch (err) {
+      alert("No he pogut obtenir la ubicació: " + err.message);
+    } finally {
+      setLoading(false);
+      setStatus("");
     }
   }
 
@@ -270,21 +317,21 @@ function App() {
 
       setStatus("Inserint punt...");
 
-     const { data: result, error: rpcError } = await supabase.rpc("insert_escossell", {
-            new_lat: lat,
-            new_lng: lng,
-            new_address: geoData.address,
-            new_city: geoData.city,
-            new_country: geoData.country,
-            new_comment: "Foto des del mòbil",
-            new_foto_url: publicUrl,
-            new_kind: kind,
-          });
+      const { data: result, error: rpcError } = await supabase.rpc("insert_escossell", {
+        new_lat: lat,
+        new_lng: lng,
+        new_address: geoData.address,
+        new_city: geoData.city,
+        new_country: geoData.country,
+        new_comment: "Foto des del mòbil",
+        new_foto_url: publicUrl,
+        new_kind: kindToUpload,
+      });
 
-          if (rpcError) {
-            alert("Error RPC: " + (rpcError.message || JSON.stringify(rpcError)));
-            return;
-          }
+      if (rpcError) {
+        alert("Error RPC: " + (rpcError.message || JSON.stringify(rpcError)));
+        return;
+      }
 
       if (result === "not_logged") {
         alert("Has d'iniciar sessió per inserir fotos.");
@@ -298,7 +345,7 @@ function App() {
 
       if (result === "inserted") {
         alert("Inserit!");
-        await loadData();
+        await loadData(cityFilter);
         return;
       }
 
@@ -313,48 +360,48 @@ function App() {
   }
 
   async function markTree(point) {
-  if (!isAuthed) {
-    alert("Has d'iniciar sessió per marcar un arbre.");
-    return;
+    if (!isAuthed) {
+      alert("Has d'iniciar sessió per marcar un arbre.");
+      return;
+    }
+
+    setLoading(true);
+    setStatus("Marcant arbre...");
+
+    try {
+      const { data: result, error } = await supabase.rpc("mark_tree_planted_nearby", {
+        new_lat: point.latitude,
+        new_lng: point.longitude,
+        new_foto_url: null,
+      });
+
+      if (error) {
+        alert("Error RPC: " + error.message);
+        return;
+      }
+
+      if (result === "tree_marked") {
+        alert("Arbre marcat!");
+        await loadData(cityFilter);
+        return;
+      }
+
+      if (result === "no_nearby_point") {
+        alert("No he trobat cap punt a prop.");
+        return;
+      }
+
+      if (result === "not_logged") {
+        alert("Has d'iniciar sessió.");
+        return;
+      }
+
+      alert("Resposta inesperada: " + JSON.stringify(result));
+    } finally {
+      setLoading(false);
+      setStatus("");
+    }
   }
-
-  setLoading(true);
-  setStatus("Marcant arbre...");
-
-  try {
-    const { data: result, error } = await supabase.rpc("mark_tree_planted_nearby", {
-      new_lat: point.latitude,
-      new_lng: point.longitude,
-      new_foto_url: null,
-    });
-
-    if (error) {
-      alert("Error RPC: " + error.message);
-      return;
-    }
-
-    if (result === "tree_marked") {
-      alert("Arbre marcat!");
-      await loadData();
-      return;
-    }
-
-    if (result === "no_nearby_point") {
-      alert("No he trobat cap punt a prop.");
-      return;
-    }
-
-    if (result === "not_logged") {
-      alert("Has d'iniciar sessió.");
-      return;
-    }
-
-    alert("Resposta inesperada: " + JSON.stringify(result));
-  } finally {
-    setLoading(false);
-    setStatus("");
-  }
-}
 
   const authBox = useMemo(() => {
     return (
@@ -442,81 +489,22 @@ function App() {
     );
   }, [isAuthed, email, password, session]);
 
-  <div
-  style={{
-    position: "absolute",
-    top: 10,
-    right: 10,
-    zIndex: 4000,
-    background: "white",
-    padding: 10,
-    borderRadius: 10,
-    boxShadow: "0 2px 10px rgba(0,0,0,0.15)",
-    display: "flex",
-    gap: 8,
-  }}
->
-  <button
-    type="button"
-    onClick={() => setKind("buit")}
-    style={{
-      padding: "8px 10px",
-      borderRadius: 8,
-      border: "1px solid #ddd",
-      background: kind === "buit" ? "#eee" : "white",
-      cursor: "pointer",
-    }}
-  >
-    ⬜ Buit
-  </button>
-
-  <button
-    type="button"
-    onClick={() => setKind("falta")}
-    style={{
-      padding: "8px 10px",
-      borderRadius: 8,
-      border: "1px solid #ddd",
-      background: kind === "falta" ? "#eee" : "white",
-      cursor: "pointer",
-    }}
-  >
-    🚧 Falta
-  </button>
-
-  <select
-  value={cityFilter || ""}
-  onChange={(e) => setCityFilter(e.target.value || null)}
-  style={{
-    position: "absolute",
-    top: 70,
-    left: 10,
-    zIndex: 4000,
-    padding: 6
-  }}
->
-  <option value="">Totes les ciutats</option>
-  <option value="Barcelona">Barcelona</option>
-</select>
-</div>
-
   return (
-    <div style={{ height: "100vh", width: "100vw" }}>
+    <div style={{ height: "100vh", width: "100vw", position: "relative" }}>
       <MapContainer
         center={userPos || [41.3851, 2.1734]}
         zoom={13}
         style={{ height: "100%", width: "100%" }}
       >
         <RecenterMap position={userPos} zoom={17} />
-
         <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
 
         {points.map((point) => (
-            <Marker
-              key={point.id}
-              position={[point.latitude, point.longitude]}
-              icon={getPointIcon(point)}
-            >
+          <Marker
+            key={point.id}
+            position={[point.latitude, point.longitude]}
+            icon={getPointIcon(point)}
+          >
             <Popup>
               <b>{point.address}</b>
               <br />
@@ -570,26 +558,113 @@ function App() {
       </MapContainer>
 
       {authBox}
+
       <div
+        style={{
+          position: "absolute",
+          top: 10,
+          right: 10,
+          zIndex: 4000,
+          background: "white",
+          padding: 10,
+          borderRadius: 10,
+          boxShadow: "0 2px 10px rgba(0,0,0,0.15)",
+          display: "flex",
+          flexDirection: "column",
+          gap: 8,
+          minWidth: 220,
+        }}
+      >
+        <div style={{ fontWeight: 700 }}>Nou punt</div>
+
+        <div style={{ display: "flex", gap: 8 }}>
+          <button
+            type="button"
+            onClick={() => setKindToUpload("buit")}
+            style={{
+              flex: 1,
+              padding: "8px 10px",
+              borderRadius: 8,
+              border: "1px solid #ddd",
+              background: kindToUpload === "buit" ? "#eee" : "white",
+              cursor: "pointer",
+            }}
+          >
+            ⬜ Buit
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setKindToUpload("falta")}
+            style={{
+              flex: 1,
+              padding: "8px 10px",
+              borderRadius: 8,
+              border: "1px solid #ddd",
+              background: kindToUpload === "falta" ? "#eee" : "white",
+              cursor: "pointer",
+            }}
+          >
+            🚧 Falta
+          </button>
+        </div>
+
+        <div style={{ fontWeight: 700, marginTop: 6 }}>Filtre ciutat</div>
+
+        <select
+          value={cityFilter}
+          onChange={(e) => setCityFilter(e.target.value)}
           style={{
-            position: "absolute",
-            bottom: 20,
-            right: 20,
-            zIndex: 4000,
-            background: "white",
-            padding: 10,
-            borderRadius: 10,
-            boxShadow: "0 2px 10px rgba(0,0,0,0.15)",
-            fontSize: 13,
-            lineHeight: 1.5,
+            padding: 8,
+            borderRadius: 8,
+            border: "1px solid #ddd",
           }}
         >
-          <div>🌳 Arbre</div>
-          <div>⬜ Escossell buit</div>
-          <div>🚧 Falta escossell</div>
+          <option value="">Totes les ciutats</option>
+          {currentCity && !cityOptions.includes(currentCity) && (
+            <option value={currentCity}>{currentCity}</option>
+          )}
+          {cityOptions.map((city) => (
+            <option key={city} value={city}>
+              {city}
+            </option>
+          ))}
+        </select>
+
+        <button
+          type="button"
+          onClick={centerOnUser}
+          style={{
+            padding: "10px 12px",
+            borderRadius: 8,
+            border: "1px solid #ddd",
+            background: "white",
+            cursor: "pointer",
+          }}
+        >
+          📍 Centrar-me
+        </button>
       </div>
 
-      {/* Botó d'afegir: si NO hi ha login, no obre càmera, mostra missatge */}
+      <div
+        style={{
+          position: "absolute",
+          bottom: 20,
+          right: 20,
+          zIndex: 4000,
+          background: "white",
+          padding: 10,
+          borderRadius: 10,
+          boxShadow: "0 2px 10px rgba(0,0,0,0.15)",
+          fontSize: 13,
+          lineHeight: 1.5,
+        }}
+      >
+        <div>🌳 Arbre</div>
+        <div>⬜ Escossell buit</div>
+        <div>🚧 Falta escossell</div>
+      </div>
+
       <div
         style={{
           position: "absolute",
@@ -599,21 +674,31 @@ function App() {
         }}
       >
         {isAuthed ? (
-          <input
-            type="file"
-            accept="image/*"
-            capture="environment"
-            onChange={handlePhotoUpload}
-            disabled={loading}
+          <div
             style={{
               background: "white",
-              padding: "12px 16px",
+              padding: "10px 12px",
               borderRadius: "10px",
               border: "1px solid #ddd",
-              cursor: loading ? "not-allowed" : "pointer",
-              opacity: loading ? 0.6 : 1,
+              boxShadow: "0 2px 6px rgba(0,0,0,0.15)",
             }}
-          />
+          >
+            <div style={{ fontSize: 12, marginBottom: 8 }}>
+              Tipus seleccionat: <b>{kindToUpload}</b>
+            </div>
+
+            <input
+              type="file"
+              accept="image/*"
+              capture="environment"
+              onChange={handlePhotoUpload}
+              disabled={loading}
+              style={{
+                cursor: loading ? "not-allowed" : "pointer",
+                opacity: loading ? 0.6 : 1,
+              }}
+            />
+          </div>
         ) : (
           <button
             type="button"
@@ -643,7 +728,7 @@ function App() {
             top: 10,
             left: "50%",
             transform: "translateX(-50%)",
-            zIndex: 3000,
+            zIndex: 5000,
             background: "white",
             padding: "10px 14px",
             borderRadius: 10,
