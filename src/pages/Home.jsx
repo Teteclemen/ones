@@ -78,6 +78,7 @@ export default function Home({ setTab }) {
   }
 
   return (
+    
     <div
       style={{
         minHeight: "calc(100vh - 72px)",
@@ -86,7 +87,8 @@ export default function Home({ setTab }) {
         alignItems: "center",
         justifyContent: "center",
         padding: 24,
-        backgroundImage: `url(${backgroundImage})`,
+     //   backgroundImage: `url(${backgroundImage})`,
+        backgroundImage: "url(/portada.jpg)",
         backgroundSize: "cover",
         backgroundPosition: "center",
         backgroundRepeat: "no-repeat",
