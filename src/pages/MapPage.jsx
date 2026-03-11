@@ -636,8 +636,10 @@ export default function MapPage() {
           active={activeFab}
           setActive={setActiveFab}
           onClick={() => {
-            showFabLabel("Falta escossell");
-            openCamera("falta");
+              showFabLabel("Falta escossell");
+              setTimeout(() => {
+                openCamera("falta");
+              }, 400);
           }}
         />
 
@@ -649,7 +651,9 @@ export default function MapPage() {
           setActive={setActiveFab}
           onClick={() => {
             showFabLabel("Escossell buit");
-            openCamera("buit");
+            setTimeout(() => {
+              openCamera("buit");
+            }, 400);
           }}
         />
 
