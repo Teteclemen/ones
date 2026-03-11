@@ -2,7 +2,6 @@ import { useEffect, useState } from "react";
 import { supabase } from "../lib/supabaseClient";
 import portada from "../assets/portada.jpg";
 
-
 export default function Home({ setTab }) {
   const [session, setSession] = useState(null);
   const [email, setEmail] = useState("");
@@ -82,29 +81,47 @@ export default function Home({ setTab }) {
     <div
       style={{
         minHeight: "calc(100vh - 72px)",
+        position: "relative",
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
         padding: 24,
+        backgroundImage: `url(${backgroundImage})`,
+        backgroundSize: "cover",
+        backgroundPosition: "center",
+        backgroundRepeat: "no-repeat",
       }}
     >
       <div
         style={{
+          position: "absolute",
+          inset: 0,
+          background:
+            "linear-gradient(to bottom, rgba(20,60,35,0.55), rgba(20,60,35,0.80))",
+        }}
+      />
+
+      <div
+        style={{
+          position: "relative",
+          zIndex: 1,
           width: "100%",
           maxWidth: 420,
-          background: "linear-gradient(to bottom, rgba(20,60,35,0.55), rgba(20,60,35,0.80))",
+          background: "rgba(255,255,255,0.14)",
+          backdropFilter: "blur(6px)",
           borderRadius: 20,
           padding: 24,
-          boxShadow: "0 8px 24px rgba(0,0,0,0.08)",
+          boxShadow: "0 8px 24px rgba(0,0,0,0.18)",
+          color: "white",
         }}
       >
-        <div style={{ fontSize: 30, fontWeight: 800, marginBottom: 8 }}>On és el meu arbre?</div>
+        <div style={{ fontSize: 18, fontWeight: 700, marginBottom: 8 }}>Escossells</div>
 
         <div style={{ fontSize: 28, fontWeight: 700, marginBottom: 12 }}>
           On és el meu arbre?
         </div>
 
-        <div style={{ fontSize: 16, color: "#555", lineHeight: 1.5, marginBottom: 20 }}>
+        <div style={{ fontSize: 16, color: "rgba(255,255,255,0.92)", lineHeight: 1.5, marginBottom: 20 }}>
           Detecta escossells buits, punts on falta escossell i arbres replantats a la ciutat.
         </div>
 
@@ -129,7 +146,7 @@ export default function Home({ setTab }) {
 
         <div
           style={{
-            borderTop: "1px solid #eee",
+            borderTop: "1px solid rgba(255,255,255,0.25)",
             paddingTop: 18,
             marginTop: 4,
           }}
@@ -253,7 +270,7 @@ export default function Home({ setTab }) {
 
         <div
           style={{
-            borderTop: "1px solid #eee",
+            borderTop: "1px solid rgba(255,255,255,0.25)",
             marginTop: 18,
             paddingTop: 18,
             display: "flex",
@@ -285,7 +302,8 @@ export default function Home({ setTab }) {
               cursor: "pointer",
             }}
             onClick={() => {
-              window.location.href = "mailto:contacte@example.com?subject=Suggeriment%20Escossells";
+              window.location.href =
+                "mailto:contacte@example.com?subject=Suggeriment%20Escossells";
             }}
           >
             💬 Enviar suggeriment
