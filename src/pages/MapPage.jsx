@@ -73,6 +73,66 @@ function RecenterMap({ position, zoom = 17 }) {
   return null;
 }
 
+function FabButton({
+  icon,
+  label,
+  onClick,
+  background = "white",
+  active,
+  setActive,
+}) {
+  return (
+    <div style={{ position: "relative", display: "flex", alignItems: "center" }}>
+      {(active === label) && (
+        <div
+          style={{
+            position: "absolute",
+            right: 66,
+            whiteSpace: "nowrap",
+            background: "rgba(34,34,34,0.92)",
+            color: "white",
+            padding: "8px 10px",
+            borderRadius: 10,
+            fontSize: 13,
+            fontWeight: 600,
+            boxShadow: "0 4px 12px rgba(0,0,0,0.18)",
+          }}
+        >
+          {label}
+        </div>
+      )}
+
+      <button
+        type="button"
+        title={label}
+        aria-label={label}
+        onMouseEnter={() => setActive(label)}
+        onMouseLeave={() => setActive(null)}
+        onFocus={() => setActive(label)}
+        onBlur={() => setActive(null)}
+        onTouchStart={() => setActive(label)}
+        onClick={onClick}
+        style={{
+          width: 56,
+          height: 56,
+          borderRadius: "50%",
+          border: "1px solid #ddd",
+          background,
+          fontSize: 22,
+          cursor: "pointer",
+          boxShadow: "0 4px 12px rgba(0,0,0,0.18)",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          transition: "transform 0.15s ease, box-shadow 0.15s ease",
+        }}
+      >
+        {icon}
+      </button>
+    </div>
+  );
+}
+
 export default function MapPage() {
   const [points, setPoints] = useState([]);
   const [userPos, setUserPos] = useState(null);
@@ -89,7 +149,10 @@ export default function MapPage() {
   const [showArbre, setShowArbre] = useState(true);
   const [filtersOpen, setFiltersOpen] = useState(false);
 
+  const [activeFab, setActiveFab] = useState(null);
+
   const fileInputRef = useRef(null);
+  const fabLabelTimerRef = useRef(null);
 
   const isAuthed = !!session?.user;
 
@@ -143,12 +206,29 @@ export default function MapPage() {
       );
     }
 
-    return () => sub.subscription.unsubscribe();
+    return () => {
+      sub.subscription.unsubscribe();
+      if (fabLabelTimerRef.current) {
+        clearTimeout(fabLabelTimerRef.current);
+      }
+    };
   }, []);
 
   useEffect(() => {
     loadData(cityFilter);
   }, [cityFilter]);
+
+  function showFabLabel(label) {
+    setActiveFab(label);
+
+    if (fabLabelTimerRef.current) {
+      clearTimeout(fabLabelTimerRef.current);
+    }
+
+    fabLabelTimerRef.current = setTimeout(() => {
+      setActiveFab(null);
+    }, 1400);
+  }
 
   function getPosition(options) {
     return new Promise((resolve, reject) => {
@@ -166,6 +246,7 @@ export default function MapPage() {
       return;
     }
 
+    setFiltersOpen(false);
     setKindToUpload(kind);
     fileInputRef.current?.click();
   }
@@ -200,6 +281,7 @@ export default function MapPage() {
 
   async function centerOnUser() {
     try {
+      setFiltersOpen(false);
       setLoading(true);
       setStatus("Centrant ubicació...");
 
@@ -426,7 +508,16 @@ export default function MapPage() {
       >
         <button
           type="button"
-          onClick={() => setFiltersOpen((v) => !v)}
+          onClick={() => {
+            setFiltersOpen((v) => !v);
+            showFabLabel("Filtres");
+          }}
+          onMouseEnter={() => setActiveFab("Filtres")}
+          onMouseLeave={() => setActiveFab(null)}
+          onFocus={() => setActiveFab("Filtres")}
+          onBlur={() => setActiveFab(null)}
+          title="Filtres"
+          aria-label="Filtres"
           style={{
             width: 48,
             height: 48,
@@ -437,10 +528,29 @@ export default function MapPage() {
             cursor: "pointer",
             fontSize: 20,
           }}
-          title="Filtres"
         >
           ⚙️
         </button>
+
+        {activeFab === "Filtres" && (
+          <div
+            style={{
+              position: "absolute",
+              top: 8,
+              right: 58,
+              background: "rgba(34,34,34,0.92)",
+              color: "white",
+              padding: "8px 10px",
+              borderRadius: 10,
+              fontSize: 13,
+              fontWeight: 600,
+              whiteSpace: "nowrap",
+              boxShadow: "0 4px 12px rgba(0,0,0,0.18)",
+            }}
+          >
+            Filtres
+          </div>
+        )}
       </div>
 
       {filtersOpen && (
@@ -519,56 +629,61 @@ export default function MapPage() {
           gap: 12,
         }}
       >
-        <button
-          onClick={() => openCamera("falta")}
-          style={{
-            width: 56,
-            height: 56,
-            borderRadius: "50%",
-            border: "1px solid #ddd",
-            background: "#fff3e0",
-            fontSize: 22,
-            cursor: "pointer",
-            boxShadow: "0 3px 10px rgba(0,0,0,0.2)",
+        <FabButton
+          icon="🚧"
+          label="Falta escossell"
+          background="#fff3e0"
+          active={activeFab}
+          setActive={setActiveFab}
+          onClick={() => {
+            showFabLabel("Falta escossell");
+            openCamera("falta");
           }}
-          title="Falta escossell"
-        >
-          🚧
-        </button>
+        />
 
-        <button
-          onClick={() => openCamera("buit")}
-          style={{
-            width: 56,
-            height: 56,
-            borderRadius: "50%",
-            border: "1px solid #ddd",
-            background: "#f2f2f2",
-            fontSize: 22,
-            cursor: "pointer",
-            boxShadow: "0 3px 10px rgba(0,0,0,0.2)",
+        <FabButton
+          icon="⬜"
+          label="Escossell buit"
+          background="#f2f2f2"
+          active={activeFab}
+          setActive={setActiveFab}
+          onClick={() => {
+            showFabLabel("Escossell buit");
+            openCamera("buit");
           }}
-          title="Escossell buit"
-        >
-          ⬜
-        </button>
+        />
 
-        <button
-          onClick={centerOnUser}
-          style={{
-            width: 56,
-            height: 56,
-            borderRadius: "50%",
-            border: "1px solid #ddd",
-            background: "white",
-            fontSize: 22,
-            cursor: "pointer",
-            boxShadow: "0 3px 10px rgba(0,0,0,0.2)",
+        <FabButton
+          icon="📍"
+          label="Centrar mapa"
+          background="white"
+          active={activeFab}
+          setActive={setActiveFab}
+          onClick={() => {
+            showFabLabel("Centrar mapa");
+            centerOnUser();
           }}
-          title="Centrar mapa"
-        >
-          📍
-        </button>
+        />
+      </div>
+
+      <div
+        style={{
+          position: "absolute",
+          left: 12,
+          bottom: 90,
+          zIndex: 4500,
+          background: "rgba(255,255,255,0.96)",
+          border: "1px solid #e5e5e5",
+          borderRadius: 12,
+          padding: "8px 10px",
+          boxShadow: "0 2px 10px rgba(0,0,0,0.12)",
+          fontSize: 12,
+          lineHeight: 1.5,
+        }}
+      >
+        <div>🌳 Arbre plantat</div>
+        <div>⬜ Escossell buit</div>
+        <div>🚧 Falta escossell</div>
       </div>
 
       <input
