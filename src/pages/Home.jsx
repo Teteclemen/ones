@@ -88,7 +88,7 @@ export default function Home({ setTab }) {
         justifyContent: "center",
         padding: 24,
      //   backgroundImage: `url(${backgroundImage})`,
-        backgroundImage: "url(/public/portada.jpg)",
+        backgroundImage: "url(/portada.jpg)",
         backgroundSize: "cover",
         backgroundPosition: "center",
         backgroundRepeat: "no-repeat",
