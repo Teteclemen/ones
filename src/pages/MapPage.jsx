@@ -428,11 +428,11 @@ export default function MapPage() {
   }
 
   return (
-    <div style={{ height: "calc(100vh - 72px)", width: "100vw", position: "relative" }}>
+    <div style={{ height: "100vh", width: "100vw", position: "relative" }}>
       <MapContainer
         center={userPos || [41.3851, 2.1734]}
         zoom={13}
-        style={{ height: "100%", width: "100%" }}
+        style={{ height: "calc(100% - 72px)", width: "100%" }}
       >
         <RecenterMap position={userPos} zoom={17} />
         <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
