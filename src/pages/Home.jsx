@@ -92,7 +92,7 @@ export default function Home({ setTab }) {
         style={{
           width: "100%",
           maxWidth: 420,
-          background: "white",
+          background: "linear-gradient(to bottom, rgba(20,60,35,0.55), rgba(20,60,35,0.80))",
           borderRadius: 20,
           padding: 24,
           boxShadow: "0 8px 24px rgba(0,0,0,0.08)",
