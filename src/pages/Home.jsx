@@ -98,8 +98,7 @@ export default function Home({ setTab }) {
         style={{
           position: "absolute",
           inset: 0,
-          background:
-            "linear-gradient(to bottom, rgba(20,60,35,0.55), rgba(20,60,35,0.20))",
+          background: "linear-gradient(to bottom, rgba(10,40,25,0.45), rgba(10,40,25,0.75))",
         }}
       />
 
@@ -110,7 +109,7 @@ export default function Home({ setTab }) {
           width: "100%",
           maxWidth: 420,
           background: "rgba(255,255,255,0.14)",
-          backdropFilter: "blur(6px)",
+          backdropFilter: "blur(8px)",
           borderRadius: 20,
           padding: 24,
           boxShadow: "0 8px 24px rgba(0,0,0,0.18)",
@@ -119,7 +118,14 @@ export default function Home({ setTab }) {
       >
         <div style={{ fontSize: 18, fontWeight: 700, marginBottom: 8 }}>Escossells</div>
 
-        <div style={{ fontSize: 28, fontWeight: 700, marginBottom: 12 }}>
+        <div
+          style={{
+            fontSize: 32,
+            fontWeight: 800,
+            marginBottom: 12,
+            textShadow: "0 4px 12px rgba(0,0,0,0.5)"
+          }}
+        >
           On és el meu arbre?
         </div>
 
