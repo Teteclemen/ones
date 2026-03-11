@@ -88,7 +88,7 @@ export default function Home({ setTab }) {
         justifyContent: "center",
         padding: 24,
      //   backgroundImage: `url(${backgroundImage})`,
-        backgroundImage: "url(/portada.jpg)",
+        backgroundImage: "url(/public/portada.jpg)",
         backgroundSize: "cover",
         backgroundPosition: "center",
         backgroundRepeat: "no-repeat",
@@ -99,7 +99,7 @@ export default function Home({ setTab }) {
           position: "absolute",
           inset: 0,
           background:
-            "linear-gradient(to bottom, rgba(20,60,35,0.55), rgba(20,60,35,0.80))",
+            "linear-gradient(to bottom, rgba(20,60,35,0.55), rgba(20,60,35,0.20))",
         }}
       />
 
