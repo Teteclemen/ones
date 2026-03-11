@@ -654,7 +654,7 @@ export default function MapPage() {
         />
 
         <FabButton
-          icon="📍"
+          icon={<span style={{ display: "inline-block", transform: "translateY(1px)" }}>📍</span>}
           label="Centrar mapa"
           background="white"
           active={activeFab}
@@ -677,7 +677,7 @@ export default function MapPage() {
           borderRadius: 12,
           padding: "8px 10px",
           boxShadow: "0 2px 10px rgba(0,0,0,0.12)",
-          fontSize: 12,
+          fontSize: 22,
           lineHeight: 1.5,
         }}
       >
