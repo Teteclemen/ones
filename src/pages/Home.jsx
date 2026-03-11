@@ -1,5 +1,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "../lib/supabaseClient";
+import portada from "../assets/portada.jpg";
+
 
 export default function Home({ setTab }) {
   const [session, setSession] = useState(null);
@@ -8,6 +10,7 @@ export default function Home({ setTab }) {
   const [loading, setLoading] = useState(false);
 
   const isAuthed = !!session?.user;
+  const backgroundImage = portada;
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => setSession(data.session));
@@ -95,7 +98,7 @@ export default function Home({ setTab }) {
           boxShadow: "0 8px 24px rgba(0,0,0,0.08)",
         }}
       >
-        <div style={{ fontSize: 30, fontWeight: 800, marginBottom: 8 }}>Escossells</div>
+        <div style={{ fontSize: 30, fontWeight: 800, marginBottom: 8 }}>On és el meu arbre?</div>
 
         <div style={{ fontSize: 28, fontWeight: 700, marginBottom: 12 }}>
           On és el meu arbre?
