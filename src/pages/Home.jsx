@@ -116,8 +116,7 @@ export default function Home({ setTab }) {
           color: "white",
         }}
       >
-        <div style={{ fontSize: 18, fontWeight: 700, marginBottom: 8 }}>Escossells</div>
-
+        <div style={{ fontSize: 18, fontWeight: 700, marginBottom: 8 }}>Onés?</div>
         <div
           style={{
             fontSize: 32,
