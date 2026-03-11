@@ -13,18 +13,25 @@ export default function BottomNav({ tab, setTab }) {
 
   return (
     <div
-      style={{
-        position: "fixed",
-        bottom: 0,
-        left: 0,
-        right: 0,
-        height: 64,
-        background: "white",
-        borderTop: "1px solid #ddd",
-        display: "flex",
-        zIndex: 6000,
-      }}
-    >
+     
+        style={{
+          position: "fixed",
+          bottom: 0,
+          left: 0,
+          width: "100%",
+          height: 72,
+          display: "flex",
+          justifyContent: "space-around",
+          alignItems: "center",
+
+          background: "rgba(255,255,255,0.15)",
+          backdropFilter: "blur(10px)",
+          borderTop: "1px solid rgba(255,255,255,0.25)",
+
+          zIndex: 5000
+        }}
+      >
+ 
       <button style={itemStyle("home")} onClick={() => setTab("home")}>
         🏠
         <br />
