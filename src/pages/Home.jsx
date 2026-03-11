@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { supabase } from "../lib/supabaseClient";
-import portada from "../assets/portada.jpg";
+
 
 export default function Home({ setTab }) {
   const [session, setSession] = useState(null);
@@ -9,7 +9,7 @@ export default function Home({ setTab }) {
   const [loading, setLoading] = useState(false);
 
   const isAuthed = !!session?.user;
-  const backgroundImage = portada;
+  
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => setSession(data.session));
