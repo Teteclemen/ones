@@ -7,6 +7,7 @@ export default function Home({ setTab }) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
+  const [showInfo, setShowInfo] = useState(false)
 
   const isAuthed = !!session?.user;
   
@@ -76,6 +77,8 @@ export default function Home({ setTab }) {
       setLoading(false);
     }
   }
+
+  
 
   return (
     
@@ -294,7 +297,7 @@ export default function Home({ setTab }) {
               background: "white",
               cursor: "pointer",
             }}
-            onClick={() => alert("Aquí hi posarem l'explicació del projecte.")}
+            onClick={() => setShowInfo(true)}
           >
             ℹ️ Com funciona
           </button>
@@ -319,4 +322,52 @@ export default function Home({ setTab }) {
       </div>
     </div>
   );
+
+  {showInfo && <InfoScreen onClose={() => setShowInfo(false)} />}
+
+  const styles = {
+  overlay: {
+    position: "fixed",
+    inset: 0,
+    background: "rgba(0,0,0,0.45)",
+    display: "flex",
+    justifyContent: "center",
+    alignItems: "center",
+    zIndex: 2000,
+    padding: 20,
+  },
+
+  container: {
+    background: "white",
+    borderRadius: 14,
+    maxWidth: 520,
+    width: "100%",
+    maxHeight: "85vh",
+    display: "flex",
+    flexDirection: "column",
+    overflow: "hidden",
+  },
+
+  header: {
+    padding: "16px 18px",
+    borderBottom: "1px solid #eee",
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
+
+  content: {
+    padding: 18,
+    overflowY: "auto",
+    lineHeight: 1.6,
+    fontSize: 15,
+  },
+
+  close: {
+    border: "none",
+    background: "transparent",
+    fontSize: 20,
+    cursor: "pointer",
+  },
+}
 }
