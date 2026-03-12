@@ -24,7 +24,7 @@ function InfoScreen({ onClose }) {
       >
         <div style={styles.infoHeader}>
           <div>
-            <div style={styles.infoEyebrow}>Projecte</div>
+            <div style={styles.infoEyebrow}>Projecte on és?</div>
             <h2 style={styles.infoTitle}>Com funciona l’aplicació</h2>
           </div>
 
@@ -41,10 +41,10 @@ function InfoScreen({ onClose }) {
         <div style={styles.infoHero}>
           <div style={styles.infoHeroIcon}>🌳</div>
           <div>
-            <div style={styles.infoHeroTitle}>Espai per explicar el projecte</div>
+            <div style={styles.infoHeroTitle}>Introducció</div>
             <div style={styles.infoHeroText}>
-              Aquí podràs posar una introducció curta i clara sobre què fa l’app
-              i per a què serveix.
+              Es tracta d'un petit projecte per situar en el mapa tots
+              els espais buits deixats pels arbres desapareguts als carrers
             </div>
           </div>
         </div>
@@ -53,10 +53,12 @@ function InfoScreen({ onClose }) {
           <div style={styles.stepCard}>
             <div style={styles.stepBadge}>1</div>
             <div>
-              <div style={styles.stepTitle}>Consulta el mapa</div>
+              <div style={styles.stepTitle}>El mapa</div>
               <div style={styles.stepText}>
-                Explica aquí com es visualitzen els punts, els escossells o les
-                incidències dins del mapa.
+                Al mapa hi trobem 3 marcadors diferents
+                 ⬜ Escossells buits
+                 🚧 Falta escossell
+                 🌳 Arbre plantat
               </div>
             </div>
           </div>
@@ -64,10 +66,12 @@ function InfoScreen({ onClose }) {
           <div style={styles.stepCard}>
             <div style={styles.stepBadge}>2</div>
             <div>
-              <div style={styles.stepTitle}>Interpreta la informació</div>
+              <div style={styles.stepTitle}>Com funciona?</div>
               <div style={styles.stepText}>
-                Aquí pots afegir el significat dels colors, icones, categories o
-                estats que feu servir.
+                Només cal fer una foto de l'escossells buit o de l'espai on
+                hauria de ser-hi i ja està. 
+                I si el que veus és que s'ha replantat un arbre, polses damunt
+                del marcador i queda recollit el canvi
               </div>
             </div>
           </div>
@@ -75,19 +79,19 @@ function InfoScreen({ onClose }) {
           <div style={styles.stepCard}>
             <div style={styles.stepBadge}>3</div>
             <div>
-              <div style={styles.stepTitle}>Participa o comunica incidències</div>
+              <div style={styles.stepTitle}>Participació</div>
               <div style={styles.stepText}>
-                En aquest bloc pots indicar com col·laborar, suggerir millores o
-                informar de nous casos.
+                Per informar l'app cal registrar-se. Per consultar no
+                
               </div>
             </div>
           </div>
 
           <div style={styles.noteBox}>
-            <div style={styles.noteTitle}>Text editable</div>
+            <div style={styles.noteTitle}>Nota bene</div>
             <div style={styles.noteText}>
-              Aquesta pantalla està preparada perquè substitueixis tot aquest
-              contingut pel text final del projecte.
+              Aquesta app és només un projecte. Pots utilitzar el correu de contacte
+              per expressar la teva opinió o idees al respecte, si vols
             </div>
           </div>
         </div>
