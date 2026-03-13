@@ -24,7 +24,7 @@ function InfoScreen({ onClose }) {
       >
         <div style={styles.infoHeader}>
           <div>
-            <div style={styles.infoEyebrow}>Projecte on és?</div>
+            <div style={styles.infoEyebrow}>Projecte oness</div>
             <h2 style={styles.infoTitle}>Com funciona l’aplicació</h2>
           </div>
 
@@ -195,7 +195,7 @@ export default function Home({ setTab }) {
         <div style={styles.pageOverlay} />
 
         <div style={styles.card}>
-          <div style={styles.brand}>Onés?</div>
+          <div style={styles.brand}>Oness</div>
 
           <div style={styles.title}>
             On és el meu arbre?

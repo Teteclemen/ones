@@ -434,7 +434,7 @@ export default function MapPage() {
         zoom={13}
         style={{ height: "calc(100% - 72px)", width: "100%" }}
       >
-        <RecenterMap position={userPos} zoom={17} />
+        <RecenterMap itition={userPos} zoom={17} />
         <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
 
         {filteredPoints.map((point) => (
