@@ -305,7 +305,7 @@ export default function Home({ setTab }) {
               style={styles.whiteButton}
               onClick={() => {
                 window.location.href =
-                  "mailto:contacte@example.com?subject=Suggeriment%20Escossells";
+                  "mailto:Climent.payme@gmail.com.com?subject=Suggeriment%20Escossells";
               }}
             >
               💬 Enviar suggeriment
